@@ -57,6 +57,14 @@ jspm_packages/
 *.swo
 *~
 
+# Visual Studio files
+.vs/
+*.njsproj
+*.njsproj.user
+*.sln
+bin/
+obj/
+
 # OS generated files
 .DS_Store
 .DS_Store?
