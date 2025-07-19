@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Directory Terminal</title>
+    <link rel="stylesheet" href="terminal.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="terminal-container">
+        <!-- Terminal Header -->
+        <div class="terminal-header">
+            <div class="terminal-controls">
+                <div class="control-button close"></div>
+                <div class="control-button minimize"></div>
+                <div class="control-button maximize"></div>
+            </div>
+            <div class="terminal-title">Employee Directory Terminal - Web Interface</div>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </div>
+
+        <!-- Terminal Content -->
+        <div class="terminal-content" id="terminalContent">
+            <!-- Output will be dynamically added here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="terminal-input-container">
+            <span class="terminal-prompt">user@employee-terminal:~$ </span>
+            <input type="text" 
+                   id="terminalInput" 
+                   class="terminal-input" 
+                   placeholder="Type 'myApp help' for available commands..."
+                   autocomplete="off"
+                   spellcheck="false">
+        </div>
+
+        <!-- Progress Bar (hidden by default) -->
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-label" id="progressLabel">Processing...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
+    </div>
+
+    <!-- Database Configuration Modal -->
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Database Configuration</h3>
+                <span class="modal-close" id="modalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Please ensure your PostgreSQL database is configured with the following settings:</p>
+                <div class="config-info">
+                    <div class="config-item">
+                        <strong>Host:</strong> localhost
+                    </div>
+                    <div class="config-item">
+                        <strong>Port:</strong> 5432
+                    </div>
+                    <div class="config-item">
+                        <strong>Database:</strong> employee_directory
+                    </div>
+                    <div class="config-item">
+                        <strong>User:</strong> postgres
+                    </div>
+                </div>
+                <p>You can modify these settings in the <code>config.js</code> file.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="modalOk">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing Terminal...</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="terminal.js"></script>
+</body>
+</html> 
