@@ -177,7 +177,7 @@ class TerminalServer {
       await DatabaseConnection.initialize();
       console.log('Database connection initialized');
 
-      this.server.listen(config.server.port, () => {
+      this.server.listen(config.server.port, config.server.host, () => {
         console.log(`\n ${config.app.name} started successfully!`);
         console.log(` Server running on http://${config.server.host}:${config.server.port}`);
         console.log(` Open your browser and navigate to the URL above`);

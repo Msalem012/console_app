@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "description": "Web-based terminal interface for employee directory management with PostgreSQL",
   "main": "server.js",
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
   "scripts": {
     "start": "node server.js",
+    "build": "echo 'No build step required for this Node.js app'",
+    "install": "npm install --production",
     "dev": "nodemon server.js",
     "test": "node test.js"
   },
