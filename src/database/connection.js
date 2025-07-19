@@ -23,8 +23,20 @@ class DatabaseConnection {
       
       return this.pool;
     } catch (error) {
-      console.error(' Failed to initialize database connection:', error.message);
-      throw error;
+      console.warn(' Warning: Database connection failed during startup:', error.message);
+      console.warn(' App will continue running. Database features will be unavailable until connection is restored.');
+      
+      this.pool = new Pool({
+        host: config.database.host,
+        port: config.database.port,
+        database: config.database.database,
+        user: config.database.user,
+        password: config.database.password,
+        ssl: config.database.ssl,
+        ...config.database.pool
+      });
+      
+      return this.pool;
     }
   }
 

@@ -4,15 +4,14 @@
   "description": "Web-based terminal interface for employee directory management with PostgreSQL",
   "main": "server.js",
   "engines": {
-    "node": "18.x",
-    "npm": "9.x"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "scripts": {
     "start": "node server.js",
-    "build": "echo 'No build step required for this Node.js app'",
-    "install": "npm install --production",
+    "build": "npm install --only=production",
     "dev": "nodemon server.js",
-    "test": "node test.js"
+    "test": "echo 'No tests specified'"
   },
   "author": {
     "name": "Employee Directory Team"

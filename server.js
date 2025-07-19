@@ -48,7 +48,8 @@ class TerminalServer {
         status: 'healthy',
         app: config.app.name,
         version: config.app.version,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
       });
     });
 
@@ -176,7 +177,11 @@ class TerminalServer {
     try {
       await DatabaseConnection.initialize();
       console.log('Database connection initialized');
+    } catch (error) {
+      console.warn('Database connection failed during startup, but server will continue:', error.message);
+    }
 
+    try {
       this.server.listen(config.server.port, config.server.host, () => {
         console.log(`\n ${config.app.name} started successfully!`);
         console.log(` Server running on http://${config.server.host}:${config.server.port}`);
