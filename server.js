@@ -5,7 +5,6 @@ const path = require('path');
 const cors = require('cors');
 const config = require('./config');
 
-// Import our application modules
 const CommandHandler = require('./src/commands/CommandHandler');
 const DatabaseConnection = require('./src/database/connection');
 
@@ -27,16 +26,10 @@ class TerminalServer {
   }
 
   setupMiddleware() {
-    // Enable CORS
     this.app.use(cors());
-    
-    // Parse JSON bodies
     this.app.use(express.json());
-    
-    // Serve static files from public directory
     this.app.use(express.static(path.join(__dirname, 'public')));
     
-    // Log requests in development
     if (config.server.environment === 'development') {
       this.app.use((req, res, next) => {
         console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -46,12 +39,10 @@ class TerminalServer {
   }
 
   setupRoutes() {
-    // Serve the main terminal interface
     this.app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));
     });
 
-    // Health check endpoint
     this.app.get('/health', (req, res) => {
       res.json({
         status: 'healthy',
@@ -61,7 +52,6 @@ class TerminalServer {
       });
     });
 
-    // API endpoint for database status
     this.app.get('/api/db-status', async (req, res) => {
       try {
         const dbStatus = await DatabaseConnection.checkConnection();
@@ -71,27 +61,22 @@ class TerminalServer {
       }
     });
 
-    // Downloads endpoint for generated files
     this.app.get('/downloads/:filename', (req, res) => {
       const filename = req.params.filename;
       const filepath = path.join(__dirname, 'public', 'downloads', filename);
       
-      // Security: Only allow .txt files and prevent directory traversal
       if (!filename.endsWith('.txt') || filename.includes('..')) {
         return res.status(400).json({ error: 'Invalid file request' });
       }
 
-      // Check if file exists
       const fs = require('fs');
       if (!fs.existsSync(filepath)) {
         return res.status(404).json({ error: 'File not found' });
       }
 
-      // Set appropriate headers for download
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       
-      // Send file
       res.sendFile(filepath, (err) => {
         if (err) {
           console.error('Error sending file:', err);
@@ -107,7 +92,6 @@ class TerminalServer {
     this.io.on('connection', (socket) => {
       console.log(`Terminal client connected: ${socket.id}`);
       
-      // Send welcome message
       socket.emit('output', {
         type: 'info',
         message: `Welcome to ${config.app.name} v${config.app.version}\n`,
@@ -120,13 +104,11 @@ class TerminalServer {
         timestamp: new Date().toISOString()
       });
 
-      // Handle command execution
       socket.on('command', async (data) => {
         const { command } = data;
         console.log(`Executing command: ${command}`);
         
         try {
-          // Parse command arguments
           const args = this.parseCommand(command);
           
           if (args.length === 0) {
@@ -138,7 +120,6 @@ class TerminalServer {
             return;
           }
 
-          // Execute command through CommandHandler
           await this.commandHandler.execute(args, (output) => {
             socket.emit('output', output);
           });
@@ -153,7 +134,6 @@ class TerminalServer {
         }
       });
 
-      // Handle disconnection
       socket.on('disconnect', () => {
         console.log(`Terminal client disconnected: ${socket.id}`);
       });
@@ -161,7 +141,6 @@ class TerminalServer {
   }
 
   parseCommand(commandString) {
-    // Simple command parser - splits by space but respects quotes
     const args = [];
     let current = '';
     let inQuotes = false;
@@ -195,11 +174,9 @@ class TerminalServer {
 
   async start() {
     try {
-      // Initialize database connection
       await DatabaseConnection.initialize();
       console.log('Database connection initialized');
 
-      // Start server
       this.server.listen(config.server.port, () => {
         console.log(`\n ${config.app.name} started successfully!`);
         console.log(` Server running on http://${config.server.host}:${config.server.port}`);
@@ -216,6 +193,5 @@ class TerminalServer {
   }
 }
 
-// Start the server
 const server = new TerminalServer();
 server.start();

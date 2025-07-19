@@ -8,7 +8,6 @@ class DatabaseConnection {
 
   async initialize() {
     try {
-      // Create connection pool
       this.pool = new Pool({
         host: config.database.host,
         port: config.database.port,
@@ -19,7 +18,6 @@ class DatabaseConnection {
         ...config.database.pool
       });  
 
-      // Test connection
       await this.checkConnection();
       console.log(' PostgreSQL connection pool initialized successfully');
       
@@ -58,7 +56,6 @@ class DatabaseConnection {
     }
 
     try {
-      // First, check if table already exists
       const checkTableQuery = `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
@@ -70,7 +67,6 @@ class DatabaseConnection {
       const existsResult = await this.pool.query(checkTableQuery);
       const tableExists = existsResult.rows[0].exists;
 
-      // Get table info query for both cases
       const tableInfoQuery = `
         SELECT 
           column_name, 
@@ -83,7 +79,6 @@ class DatabaseConnection {
       `;
 
       if (tableExists) {
-        // Table already exists, just get the structure
         const result = await this.pool.query(tableInfoQuery);
         
         return {
@@ -94,7 +89,6 @@ class DatabaseConnection {
           message: 'Table "employees" already exists with the following structure:'
         };
       } else {
-        // Table doesn't exist, create it
         const createTableQuery = `
           CREATE TABLE employees (
             id SERIAL PRIMARY KEY,
@@ -108,7 +102,6 @@ class DatabaseConnection {
 
         await this.pool.query(createTableQuery);
         
-        // Get the table structure after creation
         const result = await this.pool.query(tableInfoQuery);
         
         return {
@@ -161,7 +154,6 @@ class DatabaseConnection {
       const result = await this.pool.query(statsQuery);
       return result.rows[0];
     } catch (error) {
-      // If table doesn't exist, return empty stats
       if (error.message.includes('does not exist')) {
         return {
           total_records: 0,
@@ -243,5 +235,4 @@ class DatabaseConnection {
   }
 }
 
-// Export singleton instance
 module.exports = new DatabaseConnection(); 

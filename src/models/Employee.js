@@ -10,16 +10,13 @@ class Employee {
     this.createdAt = null;
   }
 
-  // Validate employee data
   validate() {
     const errors = [];
 
-    // Validate full name
     if (!this.fullName || typeof this.fullName !== 'string' || this.fullName.trim().length === 0) {
       errors.push('Full name is required and must be a non-empty string');
     }
 
-    // Validate birth date
     if (!this.birthDate) {
       errors.push('Birth date is required');
     } else {
@@ -31,7 +28,6 @@ class Employee {
       }
     }
 
-    // Validate gender
     if (!this.gender || !['Male', 'Female'].includes(this.gender)) {
       errors.push('Gender must be either "Male" or "Female"');
     }
@@ -42,7 +38,6 @@ class Employee {
     };
   }
 
-  // Calculate full years of age
   calculateAge() {
     if (!this.birthDate) {
       throw new Error('Birth date is required to calculate age');
@@ -58,7 +53,6 @@ class Employee {
     return now.diff(birthMoment, 'years');
   }
 
-  // Save individual employee to database
   async saveToDB() {
     const validation = this.validate();
     if (!validation.isValid) {
@@ -83,7 +77,6 @@ class Employee {
         this.gender
       ]);
 
-      // Update this instance with database values
       this.id = result.rows[0].id;
       this.createdAt = result.rows[0].created_at;
 
@@ -93,14 +86,12 @@ class Employee {
         message: `Employee "${this.fullName}" saved successfully with ID: ${this.id}`
       };
     } catch (error) {
-      if (error.code === '23505') { // Unique constraint violation
+      if (error.code === '23505') {
         throw new Error(`Employee with name "${this.fullName}" and birth date "${this.birthDate}" already exists`);
       }
       throw new Error(`Failed to save employee: ${error.message}`);
     }
   }
-
-  // Convert to plain object for JSON serialization
   toJSON() {
     return {
       id: this.id,
@@ -112,7 +103,6 @@ class Employee {
     };
   }
 
-  // Static method: Batch insert multiple employees
   static async batchInsert(employees, batchSize = 1000) {
     if (!Array.isArray(employees) || employees.length === 0) {
       throw new Error('Employees array is required and must not be empty');
@@ -123,7 +113,6 @@ class Employee {
       throw new Error('Database connection not available');
     }
 
-    // Validate all employees first
     const validationErrors = [];
     employees.forEach((emp, index) => {
       const validation = emp.validate();
@@ -145,12 +134,9 @@ class Employee {
     };
 
     try {
-      // Process in batches
       for (let i = 0; i < employees.length; i += batchSize) {
         const batch = employees.slice(i, i + batchSize);
         const batchStartTime = performance.now();
-
-        // Create batch insert query
         const values = [];
         const placeholders = [];
         
@@ -182,7 +168,6 @@ class Employee {
         results.insertedCount += result.rowCount;
         results.skippedCount += (batch.length - result.rowCount);
 
-        // Progress callback could be added here for real-time updates
         if (typeof global.progressCallback === 'function') {
           global.progressCallback({
             type: 'progress',
@@ -203,7 +188,6 @@ class Employee {
     }
   }
 
-  // Static method: Find all employees with sorting and optional filtering
   static async findAll(options = {}) {
     const pool = DatabaseConnection.getPool();
     if (!pool) {
@@ -224,7 +208,6 @@ class Employee {
     const conditions = [];
     const values = [];
 
-    // Add filtering conditions
     if (options.gender) {
       conditions.push(`gender = $${values.length + 1}`);
       values.push(options.gender);
@@ -239,12 +222,9 @@ class Employee {
       query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    // Add sorting
     const sortBy = options.sortBy || 'full_name';
     const sortOrder = options.sortOrder || 'ASC';
     query += ` ORDER BY ${sortBy} ${sortOrder}`;
-
-    // Add pagination
     if (options.limit) {
       query += ` LIMIT $${values.length + 1}`;
       values.push(options.limit);
@@ -260,7 +240,6 @@ class Employee {
       const result = await pool.query(query, values);
       const endTime = performance.now();
 
-      // Convert rows to Employee instances
       const employees = result.rows.map(row => {
         const emp = new Employee(row.full_name, row.birth_date, row.gender);
         emp.id = row.id;
@@ -279,7 +258,6 @@ class Employee {
     }
   }
 
-  // Static method: Find employees by specific criteria with performance timing
   static async findByQuery(criteria, measurePerformance = false) {
     const pool = DatabaseConnection.getPool();
     if (!pool) {
@@ -307,7 +285,6 @@ class Employee {
     }
   }
 
-  // Static method: Get count of employees matching criteria
   static async count(criteria = {}) {
     const pool = DatabaseConnection.getPool();
     if (!pool) {
@@ -340,7 +317,6 @@ class Employee {
     }
   }
 
-  // Static method: Delete all employees (for testing purposes)
   static async deleteAll() {
     const pool = DatabaseConnection.getPool();
     if (!pool) {

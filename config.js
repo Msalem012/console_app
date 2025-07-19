@@ -1,12 +1,10 @@
 module.exports = {
-  // Server Configuration
   server: {
     port: process.env.PORT || 3000,
     host: process.env.HOST || 'localhost',
     environment: process.env.NODE_ENV || 'development'
   },
 
-  // PostgreSQL Database Configuration
   database: {
     host: process.env.DB_HOST || 'dpg-d1tspt49c44c73cdeqkg-a.frankfurt-postgres.render.com',
     port: process.env.DB_PORT || 5432,
@@ -14,13 +12,11 @@ module.exports = {
     user: process.env.DB_USER || 'console_app_user',
     password: process.env.DB_PASSWORD || 'CdWx8Ugf44ZNxXrYWL6XeizcFf9kgb2x',
     
-    // SSL Configuration for hosted databases (Render requires SSL)
     ssl: process.env.DB_SSL !== 'false' ? { 
       rejectUnauthorized: false,
       require: true 
     } : false,
     
-    // Connection Pool Settings
     pool: {
       min: parseInt(process.env.DB_POOL_MIN) || 2,
       max: parseInt(process.env.DB_POOL_MAX) || 20,
@@ -29,7 +25,6 @@ module.exports = {
     }
   },
 
-  // Application Settings
   app: {
     name: 'Employee Directory Terminal',
     version: '1.0.0',

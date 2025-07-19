@@ -11,45 +11,37 @@ class TerminalInterface {
     }
 
     initializeElements() {
-        // Terminal elements
         this.terminalContent = document.getElementById('terminalContent');
         this.terminalInput = document.getElementById('terminalInput');
         this.connectionStatus = document.getElementById('connectionStatus');
         this.statusIndicator = document.getElementById('statusIndicator');
         this.statusText = document.getElementById('statusText');
         
-        // Progress elements
         this.progressContainer = document.getElementById('progressContainer');
         this.progressLabel = document.getElementById('progressLabel');
         this.progressFill = document.getElementById('progressFill');
         this.progressText = document.getElementById('progressText');
         
-        // Modal elements
         this.configModal = document.getElementById('configModal');
         this.modalClose = document.getElementById('modalClose');
         this.modalOk = document.getElementById('modalOk');
         
-        // Loading overlay
         this.loadingOverlay = document.getElementById('loadingOverlay');
     }
 
     setupEventListeners() {
-        // Terminal input handling
         this.terminalInput.addEventListener('keydown', (e) => this.handleKeyDown(e));
         this.terminalInput.addEventListener('input', () => this.handleInput());
         
-        // Modal handling
         this.modalClose.addEventListener('click', () => this.hideModal());
         this.modalOk.addEventListener('click', () => this.hideModal());
         
-        // Focus management
         document.addEventListener('click', () => {
             if (!this.isModalOpen()) {
                 this.terminalInput.focus();
             }
         });
         
-        // Window resize handling
         window.addEventListener('resize', () => this.scrollToBottom());
     }
 
@@ -128,7 +120,6 @@ class TerminalInterface {
     }
 
     handleInput() {
-        // Could add real-time command validation or suggestions here
     }
 
     executeCommand() {
@@ -136,26 +127,21 @@ class TerminalInterface {
         
         if (!command) return;
         
-        // Add to history
         this.commandHistory.push(command);
         this.historyIndex = this.commandHistory.length;
         
-        // Display command in terminal
         this.addOutput({
             type: 'command',
             message: `user@employee-terminal:~$ ${command}\n`,
             timestamp: new Date().toISOString()
         });
         
-        // Clear input
         this.clearInput();
         
-        // Check for special terminal commands first
         if (this.handleSpecialCommands(command)) {
             return; // Command was handled locally, don't send to server
         }
         
-        // Send to server for application commands
         if (this.isConnected && this.socket) {
             this.socket.emit('command', { command: command });
         } else {
@@ -170,7 +156,6 @@ class TerminalInterface {
     handleServerOutput(data) {
         const { type, message } = data;
         
-        // Handle special output types
         switch (type) {
             case 'progress':
                 this.handleProgressOutput(data);
@@ -187,7 +172,6 @@ class TerminalInterface {
     }
 
     handleProgressOutput(data) {
-        // Extract progress information from message
         const progressMatch = data.message.match(/(\d+)%/);
         if (progressMatch) {
             const percentage = parseInt(progressMatch[1]);
@@ -204,11 +188,9 @@ class TerminalInterface {
     handleDownloadOutput(data) {
         const { message, downloadUrl, filename, fileSize, recordCount } = data;
         
-        // Create download output line
         const outputLine = document.createElement('div');
         outputLine.className = 'output-line download';
         
-        // Create download link
         const downloadLink = document.createElement('a');
         downloadLink.href = downloadUrl;
         downloadLink.download = filename;
@@ -216,13 +198,11 @@ class TerminalInterface {
         downloadLink.textContent = `📄 ${filename}`;
         downloadLink.title = `Download ${filename} (${recordCount} records, ${(fileSize / 1024).toFixed(2)} KB)`;
         
-        // Style the link
         downloadLink.style.color = '#00ff00';
         downloadLink.style.textDecoration = 'underline';
         downloadLink.style.cursor = 'pointer';
         downloadLink.style.fontWeight = 'bold';
         
-        // Add hover effect
         downloadLink.addEventListener('mouseenter', () => {
             downloadLink.style.color = '#66ff66';
             downloadLink.style.textShadow = '0 0 5px #00ff00';
@@ -233,13 +213,11 @@ class TerminalInterface {
             downloadLink.style.textShadow = 'none';
         });
         
-        // Add click handler
         downloadLink.addEventListener('click', (e) => {
             e.preventDefault();
             this.downloadFile(downloadUrl, filename);
         });
         
-        // Create the output content
         const content = document.createElement('span');
         content.appendChild(document.createTextNode(message.replace('Click to download file', '')));
         content.appendChild(downloadLink);
@@ -250,7 +228,6 @@ class TerminalInterface {
     }
 
     downloadFile(url, filename) {
-        // Create temporary link and trigger download
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
@@ -258,7 +235,6 @@ class TerminalInterface {
         link.click();
         document.body.removeChild(link);
         
-        // Show download confirmation
         this.addOutput({
             type: 'success',
             message: ` Download started: ${filename}\n`,
@@ -272,7 +248,6 @@ class TerminalInterface {
         const outputLine = document.createElement('div');
         outputLine.className = `output-line ${type || 'info'}`;
         
-        // Add timestamp for certain types
         if (['error', 'success'].includes(type)) {
             const time = new Date(timestamp).toLocaleTimeString();
             outputLine.innerHTML = `<span class="timestamp">[${time}]</span>${this.escapeHtml(message)}`;
@@ -283,7 +258,6 @@ class TerminalInterface {
         this.terminalContent.appendChild(outputLine);
         this.scrollToBottom();
         
-        // Auto-hide progress on completion messages
         if (type === 'success' && message.includes('completed successfully')) {
             this.hideProgress();
         }
@@ -309,7 +283,6 @@ class TerminalInterface {
         const input = this.terminalInput.value.trim();
         const commands = ['myApp 1', 'myApp 2', 'myApp 3', 'myApp 4', 'myApp 5', 'myApp 6', 'myApp clear-data', 'myApp drop', 'myApp help', 'myApp status'];
         
-        // Simple auto-completion
         const matches = commands.filter(cmd => cmd.startsWith(input));
         
         if (matches.length === 1) {
@@ -378,7 +351,6 @@ class TerminalInterface {
         return div.innerHTML;
     }
 
-    // Utility methods for enhanced functionality
     clearTerminal() {
         this.terminalContent.innerHTML = '';
     }
@@ -418,7 +390,6 @@ class TerminalInterface {
         }
     }
 
-    // Add welcome message
     showWelcomeMessage() {
         this.addOutput({
             type: 'info',
@@ -439,7 +410,6 @@ class TerminalInterface {
         });
     }
 
-    // Handle special commands
     handleSpecialCommands(command) {
         const cmd = command.toLowerCase().trim();
         
@@ -482,33 +452,26 @@ class TerminalInterface {
         });
     }
 
-    // Enhanced command execution with special handling
     executeCommandEnhanced() {
         const command = this.terminalInput.value.trim();
         
         if (!command) return;
         
-        // Check for special commands first
         if (this.handleSpecialCommands(command)) {
             this.clearInput();
             return;
         }
         
-        // Regular command execution
         this.executeCommand();
     }
 }
 
-// Initialize terminal when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Show loading overlay initially
     const loadingOverlay = document.getElementById('loadingOverlay');
     loadingOverlay.style.display = 'flex';
     
-    // Initialize terminal interface
     window.terminal = new TerminalInterface();
     
-    // Show welcome message after connection
     setTimeout(() => {
         if (window.terminal.isConnected) {
             window.terminal.showWelcomeMessage();
@@ -516,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-// Export for debugging purposes
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TerminalInterface;
 } 
