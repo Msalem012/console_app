@@ -1,6 +1,6 @@
 {
   "name": "employee-directory-app",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Web-based terminal interface for employee directory management with PostgreSQL",
   "main": "server.js",
   "engines": {
@@ -9,9 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build": "npm install --only=production",
-    "dev": "nodemon server.js",
-    "test": "echo 'No tests specified'"
+    "dev": "nodemon server.js"
   },
   "author": {
     "name": "Employee Directory Team"
@@ -27,19 +25,7 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "eslint": "^8.21.0",
     "nodemon": "^3.0.2"
-  },
-  "eslintConfig": {
-    "env": {
-      "node": true,
-      "es2021": true
-    },
-    "extends": "eslint:recommended",
-    "parserOptions": {
-      "ecmaVersion": 12,
-      "sourceType": "module"
-    }
   },
   "keywords": [
     "nodejs",
