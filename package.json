@@ -1,6 +1,6 @@
 {
   "name": "employee-directory-app",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Web-based terminal interface for employee directory management with PostgreSQL",
   "main": "server.js",
   "engines": {
