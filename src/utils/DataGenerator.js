@@ -73,8 +73,8 @@ class DataGenerator {
 
   // Legacy method - kept for backwards compatibility but now uses streaming
   static generateEmployees(baseCount = 1000000, specialCount = 100) {
-    // Check if we're in a deployment environment and reduce the count
-    if (process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_MODE === 'true') {
+    // Check if we're in deployment mode and reduce the count
+    if (process.env.DEPLOYMENT_MODE === 'true') {
       console.log('Deployment mode detected - using reduced dataset for memory safety');
       baseCount = Math.min(baseCount, 1000); // Limit to 1000 in deployment
       specialCount = Math.min(specialCount, 10);
@@ -85,12 +85,15 @@ class DataGenerator {
       return this.generateEmployeesOriginal(baseCount, specialCount);
     }
     
-    // For large datasets, throw an error to prevent memory issues
-    throw new Error(
-      `Memory-safe mode: Cannot generate ${baseCount + specialCount} employees at once. ` +
-      `Use DataGenerator.generateEmployeesStream() for large datasets or ` +
-      `CommandHandler.mode4_generateBulkData() which handles memory efficiently.`
+    // For large datasets, recommend streaming approach
+    console.warn(
+      `⚠️  Large dataset detected (${baseCount + specialCount} employees). ` +
+      `Consider using DataGenerator.generateEmployeesStream() for memory efficiency, ` +
+      `or use CommandHandler.mode4_generateBulkData() which handles large datasets safely.`
     );
+    
+    // Allow large datasets but with warning
+    return this.generateEmployeesOriginal(baseCount, specialCount);
   }
 
   // Original method for small datasets

@@ -331,10 +331,10 @@ class CommandHandler {
       timestamp: new Date().toISOString()
     });
 
-    // Check for memory-safe mode
-    const isMemorySafeMode = process.env.NODE_ENV === 'production' || process.env.MEMORY_SAFE_MODE === 'true';
-    const baseCount = isMemorySafeMode ? 10000 : 1000000;
-    const specialCount = isMemorySafeMode ? 100 : 100;
+    // Check for deployment mode (only limit during initial deployment)
+    const isDeploymentMode = process.env.DEPLOYMENT_MODE === 'true';
+    const baseCount = isDeploymentMode ? 10000 : 1000000;
+    const specialCount = isDeploymentMode ? 100 : 100;
 
     output({
       type: 'info',
@@ -342,10 +342,16 @@ class CommandHandler {
       timestamp: new Date().toISOString()
     });
 
-    if (isMemorySafeMode) {
+    if (isDeploymentMode) {
       output({
         type: 'warning',
-        message: 'Memory-safe mode: Using reduced dataset for deployment environment\n',
+        message: 'Deployment mode: Using reduced dataset (10K) for initial deployment safety\n',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      output({
+        type: 'info',
+        message: 'Production mode: Using full dataset (1M) with memory-efficient streaming\n',
         timestamp: new Date().toISOString()
       });
     }
@@ -371,8 +377,8 @@ class CommandHandler {
         totalSkipped += batchResult.skippedCount;
         batchCount++;
 
-        // Show progress with memory info
-        const memoryCheck = MemoryMonitor.checkMemoryLimit(isMemorySafeMode ? 256 : 512);
+        // Show progress with memory info  
+        const memoryCheck = MemoryMonitor.checkMemoryLimit(isDeploymentMode ? 256 : 1024);
         output({
           type: 'progress',
           message: `Progress: ${progress.percentage}% (${progress.generated.toLocaleString()}/${progress.total.toLocaleString()}) - Batch ${batchCount} [Mem: ${memoryCheck.current.toFixed(1)}MB]\n`,

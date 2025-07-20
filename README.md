@@ -102,14 +102,20 @@ database: {
 npm run dev
 ```
 
-**Production Mode (Memory-Safe):**
+**Production Mode (Full 1M Dataset):**
 ```bash
 npm start
 ```
 
-**Deployment Mode (Maximum Memory Safety):**
+**Deployment Mode (Limited 10K Dataset for Initial Deployment):**
 ```bash
 npm run deploy
+```
+
+**Alternative Scripts:**
+```bash
+npm run start:full    # Full 1M dataset in production
+npm run start:safe    # Memory-safe 10K dataset
 ```
 
 ### 5. Access the Web Terminal
@@ -136,19 +142,25 @@ DEPLOYMENT_MODE=true
 #### Memory-Safe Features
 - **Streaming Generation**: Large datasets are generated in memory-efficient batches
 - **Reduced Batch Sizes**: Production uses smaller batch sizes (500 vs 1000)
-- **Limited Dataset Size**: In deployment mode, bulk operations use 10,000 records instead of 1M
+- **Smart Mode Detection**: 
+  - `DEPLOYMENT_MODE=true`: Limited to 10,000 records (for initial deployment)
+  - Normal production: Full 1,000,000 records with streaming
 - **Progressive Processing**: Memory is released between batches
 
 #### Deployment Scripts
 ```bash
-# Safe deployment start (recommended for production)
-npm run deploy
-
-# Standard production start
+# Full production with 1M dataset (recommended after initial deployment)
 npm start
+
+# Safe initial deployment with 10K dataset
+npm run deploy
 
 # Development with full features
 npm run dev
+
+# Alternative production modes
+npm run start:full    # Explicit full dataset
+npm run start:safe    # Explicit memory-safe mode
 ```
 
 ### Cloud Platform Deployment
@@ -174,9 +186,10 @@ CMD ["npm", "run", "deploy"]
 ```
 
 ### Memory Requirements
-- **Development**: 2-4 GB RAM (full 1M dataset)
-- **Production**: 512 MB - 1 GB RAM (memory-safe mode)
-- **Deployment**: 256-512 MB RAM (minimal mode)
+- **Development**: 1-2 GB RAM (full 1M dataset)
+- **Production**: 1-2 GB RAM (full 1M dataset with streaming)
+- **Initial Deployment**: 256-512 MB RAM (10K dataset mode)
+- **Memory-Safe Mode**: 512 MB RAM (10K dataset)
 
 ## 💻 **Usage**
 
