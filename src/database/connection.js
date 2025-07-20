@@ -188,25 +188,35 @@ class DatabaseConnection {
 
     const indexes = [
       {
+        name: 'idx_employees_high_performance_pagination',
+        query: `CREATE INDEX IF NOT EXISTS idx_employees_high_performance_pagination 
+                ON employees(full_name, id);`,
+        description: 'High-performance index for fast file generation with cursor pagination'
+      },
+      {
         name: 'idx_employees_gender_name',
         query: `CREATE INDEX IF NOT EXISTS idx_employees_gender_name 
                 ON employees(gender, full_name) 
-                WHERE gender = 'Male' AND full_name LIKE 'F%';`
+                WHERE gender = 'Male' AND full_name LIKE 'F%';`,
+        description: 'Optimized index for Mode 5 queries'
       },
       {
         name: 'idx_employees_full_name',
         query: `CREATE INDEX IF NOT EXISTS idx_employees_full_name 
-                ON employees(full_name);`
+                ON employees(full_name);`,
+        description: 'General full name index'
       },
       {
         name: 'idx_employees_gender',
         query: `CREATE INDEX IF NOT EXISTS idx_employees_gender 
-                ON employees(gender);`
+                ON employees(gender);`,
+        description: 'Gender filtering index'
       },
       {
         name: 'idx_employees_birth_date',
         query: `CREATE INDEX IF NOT EXISTS idx_employees_birth_date 
-                ON employees(birth_date);`
+                ON employees(birth_date);`,
+        description: 'Birth date index for age calculations'
       }
     ];
 
@@ -220,6 +230,7 @@ class DatabaseConnection {
         
         results.push({
           name: index.name,
+          description: index.description || '',
           created: true,
           executionTime: `${(endTime - startTime).toFixed(2)}ms`
         });

@@ -223,9 +223,12 @@ class CommandHandler {
       // Memory monitoring
       MemoryMonitor.logMemoryUsage('Before File Generation');
       
+      // Ensure high-performance index exists for fast pagination
+      await this.ensureHighPerformanceIndex(output);
+      
       output({
         type: 'info',
-        message: 'Generating employee list file with memory-efficient streaming...\n',
+        message: '🚀 Generating employee list file with high-performance streaming...\n',
         timestamp: new Date().toISOString()
       });
 
@@ -340,14 +343,66 @@ class CommandHandler {
     return content;
   }
 
+  async ensureHighPerformanceIndex(output) {
+    try {
+      const pool = DatabaseConnection.getPool();
+      
+      // Check if the high-performance index exists
+      const checkQuery = `
+        SELECT EXISTS (
+          SELECT 1 FROM pg_indexes 
+          WHERE indexname = 'idx_employees_high_performance_pagination'
+        );
+      `;
+      
+      const result = await pool.query(checkQuery);
+      const indexExists = result.rows[0].exists;
+      
+      if (!indexExists) {
+        output({
+          type: 'info',
+          message: '⚡ Creating high-performance index for fast file generation...\n',
+          timestamp: new Date().toISOString()
+        });
+        
+        const startTime = performance.now();
+        await pool.query(`
+          CREATE INDEX idx_employees_high_performance_pagination 
+          ON employees(full_name, id);
+        `);
+        const endTime = performance.now();
+        
+        output({
+          type: 'success',
+          message: `✅ High-performance index created in ${(endTime - startTime).toFixed(2)}ms\n`,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        output({
+          type: 'info',
+          message: '✅ High-performance index already exists\n',
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      // If index creation fails, continue anyway (will be slower but still work)
+      output({
+        type: 'warning',
+        message: `⚠️  Could not create high-performance index: ${error.message}\n`,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   async generateEmployeeListFileStreaming(filepath, totalCount, output) {
     const fs = require('fs');
     const startTime = performance.now();
-    const batchSize = 5000; // Reduced to 5K for more frequent updates
+    const batchSize = 50000; // Much larger batches for speed
     let processedCount = 0;
+    let lastId = 0; // For cursor-based pagination
     
     // Create write stream for memory-efficient file writing
-    const writeStream = fs.createWriteStream(filepath, { encoding: 'utf8' });
+    const writeStream = fs.createWriteStream(filepath, { encoding: 'utf8', highWaterMark: 1024 * 1024 }); // 1MB buffer
     
     try {
       // Write file header
@@ -356,7 +411,7 @@ class CommandHandler {
       writeStream.write('='.repeat(80) + '\n');
       writeStream.write(`Generated: ${new Date().toLocaleString()}\n`);
       writeStream.write(`Total Employees: ${totalCount.toLocaleString()}\n`);
-      writeStream.write(`Processing Method: Memory-Efficient Streaming\n`);
+      writeStream.write(`Processing Method: High-Performance Streaming\n`);
       writeStream.write(`Sorted by: Full Name (Ascending)\n`);
       writeStream.write('='.repeat(80) + '\n\n');
       
@@ -364,53 +419,70 @@ class CommandHandler {
       writeStream.write('ID'.padEnd(8) + 'Full Name'.padEnd(35) + 'Birth Date'.padEnd(15) + 'Gender'.padEnd(10) + 'Age\n');
       writeStream.write('-'.repeat(80) + '\n');
 
-      // Process employees in batches
-      for (let offset = 0; offset < totalCount; offset += batchSize) {
-        const currentBatchSize = Math.min(batchSize, totalCount - offset);
+      const pool = DatabaseConnection.getPool();
+      
+      // Use cursor-based pagination for much better performance
+      while (processedCount < totalCount) {
+        const currentBatchSize = Math.min(batchSize, totalCount - processedCount);
         
-        // Fetch batch from database
-        const result = await Employee.findAll({
-          sortBy: 'full_name',
-          sortOrder: 'ASC',
-          limit: currentBatchSize,
-          offset: offset
-        });
-
-        // Write batch to file
-        result.employees.forEach((employee) => {
-          const id = String(employee.id || '').padEnd(8);
-          const name = String(employee.fullName || '').padEnd(35);
-          const birthDate = String(employee.birthDate || '').padEnd(15);
-          const gender = String(employee.gender || '').padEnd(10);
-          const age = String(employee.calculateAge() || '');
+        // High-performance query with cursor pagination instead of OFFSET
+        const query = `
+          SELECT 
+            id,
+            full_name,
+            birth_date,
+            gender,
+            EXTRACT(YEAR FROM AGE(birth_date)) as age
+          FROM employees
+          WHERE id > $1
+          ORDER BY full_name ASC, id ASC
+          LIMIT $2
+        `;
+        
+        const batchStartTime = performance.now();
+        const result = await pool.query(query, [lastId, currentBatchSize]);
+        const batchQueryTime = performance.now() - batchStartTime;
+        
+        if (result.rows.length === 0) break;
+        
+        // Build bulk string for this batch (much faster than individual writes)
+        let batchContent = '';
+        for (const row of result.rows) {
+          const id = String(row.id || '').padEnd(8);
+          const name = String(row.full_name || '').padEnd(35);
+          const birthDate = String(row.birth_date || '').padEnd(15);
+          const gender = String(row.gender || '').padEnd(10);
+          const age = String(row.age || '');
           
-          writeStream.write(`${id}${name}${birthDate}${gender}${age}\n`);
-        });
-
-        processedCount += result.employees.length;
+          batchContent += `${id}${name}${birthDate}${gender}${age}\n`;
+          lastId = Math.max(lastId, row.id);
+        }
         
-        // Show progress more frequently to keep connection alive
+        // Write entire batch at once
+        writeStream.write(batchContent);
+        
+        processedCount += result.rows.length;
+        
+        // Show progress
         const progressPercentage = Math.round((processedCount / totalCount) * 100);
         output({
           type: 'progress',
-          message: `Progress: ${progressPercentage}% (${processedCount.toLocaleString()}/${totalCount.toLocaleString()}) - Memory: ${MemoryMonitor.getMemoryUsage().heapUsed}\n`,
+          message: `🚀 Progress: ${progressPercentage}% (${processedCount.toLocaleString()}/${totalCount.toLocaleString()}) - Query: ${batchQueryTime.toFixed(0)}ms - Memory: ${MemoryMonitor.getMemoryUsage().heapUsed}\n`,
           timestamp: new Date().toISOString()
         });
 
-        // Send keepalive every batch to prevent connection timeout
-        output({
-          type: 'keepalive',
-          message: `Processing batch ${Math.floor(offset / batchSize) + 1}...\n`,
-          timestamp: new Date().toISOString()
-        });
+        // Send keepalive less frequently since we're faster now
+        if (processedCount % (batchSize * 2) === 0) {
+          output({
+            type: 'keepalive',
+            message: `High-speed processing: ${processedCount.toLocaleString()} records...\n`,
+            timestamp: new Date().toISOString()
+          });
+        }
 
-        // Memory management: force GC every 5 batches (more frequent)
-        if (offset > 0 && (offset / batchSize) % 5 === 0) {
+        // Memory management: force GC every few large batches
+        if (processedCount > 0 && processedCount % (batchSize * 3) === 0) {
           MemoryMonitor.forceGarbageCollection();
-          // Small delay to prevent overwhelming the system
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } else {
-          // Micro delay to allow other operations
           await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
@@ -420,7 +492,7 @@ class CommandHandler {
       writeStream.write(`Total Records: ${processedCount.toLocaleString()}\n`);
       writeStream.write(`Processing Time: ${((performance.now() - startTime) / 1000).toFixed(2)}s\n`);
       writeStream.write(`Report generated by Employee Directory Terminal\n`);
-      writeStream.write(`Memory-Efficient Streaming Mode\n`);
+      writeStream.write(`High-Performance Streaming Mode\n`);
       writeStream.write(`End of Report\n`);
       writeStream.write('='.repeat(80) + '\n');
 
@@ -441,7 +513,7 @@ class CommandHandler {
         executionTime,
         fileSize: fileStats.size,
         recordsProcessed: processedCount,
-        batchesProcessed: Math.ceil(totalCount / batchSize)
+        batchesProcessed: Math.ceil(processedCount / batchSize)
       };
 
     } catch (error) {
@@ -452,7 +524,7 @@ class CommandHandler {
       } catch (unlinkError) {
         // Ignore cleanup errors
       }
-      throw new Error(`Streaming file generation failed: ${error.message}`);
+      throw new Error(`High-performance streaming failed: ${error.message}`);
     }
   }
 
@@ -825,6 +897,13 @@ class CommandHandler {
           message: `  ${index.name}: created in ${index.executionTime}\n`,
           timestamp: new Date().toISOString()
         });
+        if (index.description) {
+          output({
+            type: 'data',
+            message: `    └─ ${index.description}\n`,
+            timestamp: new Date().toISOString()
+          });
+        }
       });
 
       output({
