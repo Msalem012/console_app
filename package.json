@@ -23,7 +23,7 @@
     "pg-pool": "^3.6.1",
     "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "faker": "^6.6.6",
+    "@faker-js/faker": "^8.0.2",
     "moment": "^2.29.4"
   },
   "devDependencies": {

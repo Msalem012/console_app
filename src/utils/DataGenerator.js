@@ -1,77 +1,23 @@
+const { faker } = require('@faker-js/faker');
 const Employee = require('../models/Employee');
 
 class DataGenerator {
-  static firstNames = {
-    male: [
-      'James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Thomas',
-      'Christopher', 'Daniel', 'Paul', 'Mark', 'Donald', 'Steven', 'Kenneth',
-      'Andrew', 'Frank', 'Gregory', 'Raymond', 'Alexander', 'Patrick', 'Jack',
-      'Dennis', 'Jerry', 'Tyler', 'Aaron', 'Jose', 'Henry', 'Adam', 'Douglas'
-    ],
-    female: [
-      'Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Barbara', 'Susan',
-      'Jessica', 'Sarah', 'Karen', 'Nancy', 'Lisa', 'Betty', 'Helen', 'Sandra',
-      'Donna', 'Carol', 'Ruth', 'Sharon', 'Michelle', 'Laura', 'Sarah', 'Kimberly',
-      'Deborah', 'Dorothy', 'Lisa', 'Nancy', 'Karen', 'Betty', 'Helen'
-    ]
-  };
-
-  static lastNames = [
-    'Anderson', 'Adams', 'Allen', 'Alexander', 'Armstrong', 'Arnold', 'Austin',
-    'Brown', 'Baker', 'Bell', 'Bennett', 'Brooks', 'Butler', 'Barnes',
-    'Clark', 'Collins', 'Cook', 'Cooper', 'Carter', 'Campbell', 'Cox',
-    'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas',
-    'Evans', 'Edwards', 'Ellis', 'Elliott', 'Erickson', 'Estrada', 'Ewing',
-    'Foster', 'Fisher', 'Flores', 'Freeman', 'Ferguson', 'Ford', 'Fox',
-    'Franklin', 'French', 'Fuller', 'Flynn', 'Farmer', 'Fleming', 'Fields',
-    'Garcia', 'Gonzalez', 'Green', 'Griffin', 'Gray', 'Graham', 'Grant',
-    'Harris', 'Hall', 'Hill', 'Howard', 'Hughes', 'Henderson', 'Hayes',
-    'Ingram', 'Irwin', 'Isaac', 'Ivanov', 'Ibrahim', 'Iglesias', 'Imai',
-    'Johnson', 'Jones', 'Jackson', 'James', 'Jenkins', 'Jordan', 'Joyce',
-    'King', 'Kelly', 'Kim', 'Knight', 'Kumar', 'Kennedy', 'Klein',
-    'Lee', 'Lewis', 'Lopez', 'Long', 'Lynch', 'Lawrence', 'Lucas',
-    'Martin', 'Martinez', 'Mitchell', 'Murphy', 'Morris', 'Morgan', 'Moore',
-    'Nelson', 'Newman', 'Nguyen', 'Nixon', 'Norman', 'Nash', 'Newton',
-    'O\'Brien', 'O\'Connor', 'Oliver', 'Olson', 'Owen', 'Ortiz', 'Osborne',
-    'Parker', 'Patterson', 'Perez', 'Peterson', 'Phillips', 'Powell', 'Price',
-    'Quinn', 'Qualls', 'Quick', 'Quintero', 'Quentin', 'Quarles', 'Queen',
-    'Robinson', 'Rodriguez', 'Roberts', 'Reed', 'Ross', 'Russell', 'Rogers',
-    'Smith', 'Scott', 'Stewart', 'Sullivan', 'Sanders', 'Simmons', 'Stone',
-    'Thompson', 'Taylor', 'Thomas', 'Turner', 'Torres', 'Tucker', 'Tyler',
-    'Underwood', 'Upton', 'Urquhart', 'Ulrich', 'Urban', 'Usher', 'Unger',
-    'Vargas', 'Vaughn', 'Vega', 'Vincent', 'Vogt', 'Valdez', 'Valencia',
-    'White', 'Williams', 'Wilson', 'Wright', 'Walker', 'Washington', 'Watson',
-    'Xavier', 'Xiong', 'Xu', 'Xander', 'Xerxes', 'Xiao', 'Ximenes',
-    'Young', 'York', 'Yang', 'Yates', 'Yeager', 'Yoder', 'Yuen',
-    'Zhang', 'Zimmerman', 'Zuniga', 'Ziegler', 'Zamora', 'Zhao', 'Zulu'
-  ];
-
-  static middleNames = [
-    'Alexander', 'Michael', 'James', 'William', 'David', 'John', 'Robert',
-    'Marie', 'Anne', 'Elizabeth', 'Grace', 'Rose', 'Joy', 'Hope',
-    'Lee', 'Ray', 'Lynn', 'Jean', 'Ann', 'May', 'Sue', 'Jane'
-  ];
-
   static generateRandomBirthDate() {
-    const start = new Date('1950-01-01');
-    const end = new Date('2005-12-31');
-    const randomTime = start.getTime() + Math.random() * (end.getTime() - start.getTime());
-    return new Date(randomTime).toISOString().split('T')[0]; // YYYY-MM-DD format
+    return faker.date.between({ from: '1950-01-01', to: '2005-12-31' }).toISOString().split('T')[0];
   }
 
   static generateRandomName(gender, forceLastNameLetter = null) {
-    const firstNames = this.firstNames[gender.toLowerCase()];
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const middleName = this.middleNames[Math.floor(Math.random() * this.middleNames.length)];
-    
+    const sex = gender.toLowerCase();
+    const firstName = faker.person.firstName(sex);
+    const middleName = faker.person.middleName(sex);
     let lastName;
+
     if (forceLastNameLetter) {
-      const lastNamesWithLetter = this.lastNames.filter(name => 
-        name.charAt(0).toLowerCase() === forceLastNameLetter.toLowerCase()
-      );
-      lastName = lastNamesWithLetter[Math.floor(Math.random() * lastNamesWithLetter.length)];
+      // This is a simplified approach. A more robust solution might be needed
+      // if the letter is uncommon.
+      lastName = forceLastNameLetter + faker.person.lastName().substring(1);
     } else {
-      lastName = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+      lastName = faker.person.lastName();
     }
 
     return `${lastName} ${firstName} ${middleName}`;
