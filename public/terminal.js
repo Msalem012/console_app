@@ -82,6 +82,28 @@ class TerminalInterface {
                 this.showConfigModal();
             });
 
+            // Handle heartbeat to keep connection alive during long operations
+            this.socket.on('heartbeat', (data) => {
+                console.log('Heartbeat received:', data.timestamp);
+                // Update connection status to show active processing
+                if (data.status === 'processing') {
+                    this.updateConnectionStatus('connected', 'Processing...');
+                    
+                    // Auto-restore status after heartbeat activity
+                    setTimeout(() => {
+                        if (this.isConnected) {
+                            this.updateConnectionStatus('connected', 'Connected');
+                        }
+                    }, 35000); // Restore after 35 seconds (longer than heartbeat interval)
+                }
+            });
+
+            // Handle keepalive messages during batch processing
+            this.socket.on('keepalive', (data) => {
+                // Just log the keepalive - no need to display to user
+                console.log('Keepalive:', data.message);
+            });
+
         } catch (error) {
             console.error('Failed to initialize socket connection:', error);
             this.updateConnectionStatus('error', 'Failed to connect');
@@ -163,6 +185,12 @@ class TerminalInterface {
                 
             case 'download':
                 this.handleDownloadOutput(data);
+                break;
+                
+            case 'keepalive':
+                // Don't display keepalive messages in terminal
+                // They're just for connection maintenance
+                console.log('Keepalive received:', message);
                 break;
                 
             default:

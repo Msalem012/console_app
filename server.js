@@ -16,7 +16,14 @@ class TerminalServer {
       cors: {
         origin: "*",
         methods: ["GET", "POST"]
-      }
+      },
+      // Increase timeouts for long-running operations
+      pingTimeout: 120000,    // 2 minutes
+      pingInterval: 25000,    // 25 seconds  
+      upgradeTimeout: 30000,  // 30 seconds
+      // Allow long-running operations
+      maxHttpBufferSize: 1e8, // 100 MB
+      transports: ['websocket', 'polling']
     });
     this.commandHandler = new CommandHandler();
     
@@ -109,6 +116,26 @@ class TerminalServer {
         const { command } = data;
         console.log(`Executing command: ${command}`);
         
+        // Setup heartbeat for long operations
+        let heartbeatInterval = null;
+        const startHeartbeat = () => {
+          heartbeatInterval = setInterval(() => {
+            if (socket.connected) {
+              socket.emit('heartbeat', { 
+                timestamp: new Date().toISOString(),
+                status: 'processing' 
+              });
+            }
+          }, 30000); // Send heartbeat every 30 seconds
+        };
+        
+        const stopHeartbeat = () => {
+          if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+          }
+        };
+
         try {
           const args = this.parseCommand(command);
           
@@ -119,6 +146,12 @@ class TerminalServer {
               timestamp: new Date().toISOString()
             });
             return;
+          }
+
+          // Start heartbeat for long operations (Mode 3, 4, 5, 6)
+          const isLongOperation = ['3', '4', '5', '6'].includes(args[0]);
+          if (isLongOperation) {
+            startHeartbeat();
           }
 
           await this.commandHandler.execute(args, (output) => {
@@ -132,6 +165,8 @@ class TerminalServer {
             message: `Error: ${error.message}\n`,
             timestamp: new Date().toISOString()
           });
+        } finally {
+          stopHeartbeat();
         }
       });
 

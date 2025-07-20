@@ -343,7 +343,7 @@ class CommandHandler {
   async generateEmployeeListFileStreaming(filepath, totalCount, output) {
     const fs = require('fs');
     const startTime = performance.now();
-    const batchSize = 10000; // Process 10K employees at a time
+    const batchSize = 5000; // Reduced to 5K for more frequent updates
     let processedCount = 0;
     
     // Create write stream for memory-efficient file writing
@@ -389,7 +389,7 @@ class CommandHandler {
 
         processedCount += result.employees.length;
         
-        // Show progress
+        // Show progress more frequently to keep connection alive
         const progressPercentage = Math.round((processedCount / totalCount) * 100);
         output({
           type: 'progress',
@@ -397,10 +397,20 @@ class CommandHandler {
           timestamp: new Date().toISOString()
         });
 
-        // Memory management: force GC every 10 batches
-        if (offset > 0 && (offset / batchSize) % 10 === 0) {
+        // Send keepalive every batch to prevent connection timeout
+        output({
+          type: 'keepalive',
+          message: `Processing batch ${Math.floor(offset / batchSize) + 1}...\n`,
+          timestamp: new Date().toISOString()
+        });
+
+        // Memory management: force GC every 5 batches (more frequent)
+        if (offset > 0 && (offset / batchSize) % 5 === 0) {
           MemoryMonitor.forceGarbageCollection();
           // Small delay to prevent overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } else {
+          // Micro delay to allow other operations
           await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
