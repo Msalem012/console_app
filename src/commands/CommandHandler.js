@@ -202,18 +202,16 @@ class CommandHandler {
     });
 
     try {
-      const result = await Employee.findAll({
-        sortBy: 'full_name',
-        sortOrder: 'ASC'
-      });
-
+      // First, get the total count without loading all data
+      const totalCount = await Employee.count();
+      
       output({
         type: 'info',
-        message: `Found ${result.count} employees (execution time: ${result.executionTime})\n`,
+        message: `Found ${totalCount.toLocaleString()} employees in database\n`,
         timestamp: new Date().toISOString()
       });
 
-      if (result.count === 0) {
+      if (totalCount === 0) {
         output({
           type: 'warning',
           message: 'No employees found in the database.\n',
@@ -222,14 +220,16 @@ class CommandHandler {
         return;
       }
 
+      // Memory monitoring
+      MemoryMonitor.logMemoryUsage('Before File Generation');
+      
       output({
         type: 'info',
-        message: 'Generating employee list file...\n',
+        message: 'Generating employee list file with memory-efficient streaming...\n',
         timestamp: new Date().toISOString()
       });
 
-      const fileContent = this.generateEmployeeListText(result.employees, result);
-      
+      // Setup file streaming
       const downloadsDir = path.join(__dirname, '../../public/downloads');
       try {
         await fs.access(downloadsDir);
@@ -241,13 +241,17 @@ class CommandHandler {
       const filename = `employees_list_${timestamp}.txt`;
       const filepath = path.join(downloadsDir, filename);
 
-      await fs.writeFile(filepath, fileContent, 'utf8');
+      // Use streaming file generation
+      const fileStats = await this.generateEmployeeListFileStreaming(filepath, totalCount, output);
 
       const downloadUrl = `/downloads/${filename}`;
 
+      // Final memory check
+      MemoryMonitor.logMemoryUsage('After File Generation');
+
       output({
         type: 'success',
-        message: `Employee list file generated successfully!\n`,
+        message: `✅ Employee list file generated successfully!\n`,
         timestamp: new Date().toISOString()
       });
 
@@ -259,13 +263,25 @@ class CommandHandler {
 
       output({
         type: 'info',
-        message: `Records: ${result.count} employees\n`,
+        message: `Records: ${totalCount.toLocaleString()} employees\n`,
         timestamp: new Date().toISOString()
       });
 
       output({
         type: 'info',
-        message: `Size: ${(fileContent.length / 1024).toFixed(2)} KB\n`,
+        message: `Size: ${(fileStats.fileSize / 1024).toFixed(2)} KB\n`,
+        timestamp: new Date().toISOString()
+      });
+
+      output({
+        type: 'info',
+        message: `Generation time: ${fileStats.executionTime}\n`,
+        timestamp: new Date().toISOString()
+      });
+
+      output({
+        type: 'info',
+        message: `Memory usage: Streaming (memory-efficient)\n`,
         timestamp: new Date().toISOString()
       });
 
@@ -274,14 +290,14 @@ class CommandHandler {
         message: `Download ready: Click to download file\n`,
         downloadUrl: downloadUrl,
         filename: filename,
-        fileSize: fileContent.length,
-        recordCount: result.count,
+        fileSize: fileStats.fileSize,
+        recordCount: totalCount,
         timestamp: new Date().toISOString()
       });
 
       output({
         type: 'success',
-        message: '\n Mode 3 completed successfully!\n\n',
+        message: '\n🚀 Mode 3 completed successfully!\n\n',
         timestamp: new Date().toISOString()
       });
 
@@ -324,6 +340,112 @@ class CommandHandler {
     return content;
   }
 
+  async generateEmployeeListFileStreaming(filepath, totalCount, output) {
+    const fs = require('fs');
+    const startTime = performance.now();
+    const batchSize = 10000; // Process 10K employees at a time
+    let processedCount = 0;
+    
+    // Create write stream for memory-efficient file writing
+    const writeStream = fs.createWriteStream(filepath, { encoding: 'utf8' });
+    
+    try {
+      // Write file header
+      writeStream.write('='.repeat(80) + '\n');
+      writeStream.write('                         EMPLOYEE DIRECTORY REPORT\n');
+      writeStream.write('='.repeat(80) + '\n');
+      writeStream.write(`Generated: ${new Date().toLocaleString()}\n`);
+      writeStream.write(`Total Employees: ${totalCount.toLocaleString()}\n`);
+      writeStream.write(`Processing Method: Memory-Efficient Streaming\n`);
+      writeStream.write(`Sorted by: Full Name (Ascending)\n`);
+      writeStream.write('='.repeat(80) + '\n\n');
+      
+      // Write column headers
+      writeStream.write('ID'.padEnd(8) + 'Full Name'.padEnd(35) + 'Birth Date'.padEnd(15) + 'Gender'.padEnd(10) + 'Age\n');
+      writeStream.write('-'.repeat(80) + '\n');
+
+      // Process employees in batches
+      for (let offset = 0; offset < totalCount; offset += batchSize) {
+        const currentBatchSize = Math.min(batchSize, totalCount - offset);
+        
+        // Fetch batch from database
+        const result = await Employee.findAll({
+          sortBy: 'full_name',
+          sortOrder: 'ASC',
+          limit: currentBatchSize,
+          offset: offset
+        });
+
+        // Write batch to file
+        result.employees.forEach((employee) => {
+          const id = String(employee.id || '').padEnd(8);
+          const name = String(employee.fullName || '').padEnd(35);
+          const birthDate = String(employee.birthDate || '').padEnd(15);
+          const gender = String(employee.gender || '').padEnd(10);
+          const age = String(employee.calculateAge() || '');
+          
+          writeStream.write(`${id}${name}${birthDate}${gender}${age}\n`);
+        });
+
+        processedCount += result.employees.length;
+        
+        // Show progress
+        const progressPercentage = Math.round((processedCount / totalCount) * 100);
+        output({
+          type: 'progress',
+          message: `Progress: ${progressPercentage}% (${processedCount.toLocaleString()}/${totalCount.toLocaleString()}) - Memory: ${MemoryMonitor.getMemoryUsage().heapUsed}\n`,
+          timestamp: new Date().toISOString()
+        });
+
+        // Memory management: force GC every 10 batches
+        if (offset > 0 && (offset / batchSize) % 10 === 0) {
+          MemoryMonitor.forceGarbageCollection();
+          // Small delay to prevent overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+
+      // Write file footer
+      writeStream.write('\n' + '-'.repeat(80) + '\n');
+      writeStream.write(`Total Records: ${processedCount.toLocaleString()}\n`);
+      writeStream.write(`Processing Time: ${((performance.now() - startTime) / 1000).toFixed(2)}s\n`);
+      writeStream.write(`Report generated by Employee Directory Terminal\n`);
+      writeStream.write(`Memory-Efficient Streaming Mode\n`);
+      writeStream.write(`End of Report\n`);
+      writeStream.write('='.repeat(80) + '\n');
+
+      // Close the stream and wait for completion
+      await new Promise((resolve, reject) => {
+        writeStream.end();
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+      });
+
+      const endTime = performance.now();
+      const executionTime = `${(endTime - startTime).toFixed(2)}ms`;
+      
+      // Get file size
+      const fileStats = await fs.promises.stat(filepath);
+      
+      return {
+        executionTime,
+        fileSize: fileStats.size,
+        recordsProcessed: processedCount,
+        batchesProcessed: Math.ceil(totalCount / batchSize)
+      };
+
+    } catch (error) {
+      // Clean up on error
+      writeStream.destroy();
+      try {
+        await fs.promises.unlink(filepath);
+      } catch (unlinkError) {
+        // Ignore cleanup errors
+      }
+      throw new Error(`Streaming file generation failed: ${error.message}`);
+    }
+  }
+
   async mode4_generateBulkData(args, output) {
     output({
       type: 'info',
@@ -351,7 +473,7 @@ class CommandHandler {
     } else {
       output({
         type: 'info',
-        message: 'Production mode: Using full dataset (1M) with memory-efficient streaming\n',
+        message: '\n',
         timestamp: new Date().toISOString()
       });
     }

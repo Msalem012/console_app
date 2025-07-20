@@ -5,7 +5,7 @@ module.exports = {
     NODE_ENV: 'production',
     MEMORY_SAFE_MODE: 'true',
     DEPLOYMENT_MODE: 'true',
-    
+    ion mode: 
     // Database pool settings for production
     DB_POOL_MIN: '2',
     DB_POOL_MAX: '10',
