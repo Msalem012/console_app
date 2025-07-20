@@ -174,25 +174,36 @@ class TerminalServer {
   }
 
   async start() {
+    // Memory safety check
+    if (process.env.DEPLOYMENT_MODE === 'true') {
+      console.log('🚀 Deployment mode detected - Memory-safe startup enabled');
+      console.log('📝 Large dataset operations will be limited to prevent memory issues');
+    }
+
     try {
       await DatabaseConnection.initialize();
-      console.log('Database connection initialized');
+      console.log('✅ Database connection initialized');
     } catch (error) {
-      console.warn('Database connection failed during startup, but server will continue:', error.message);
+      console.warn('⚠️  Database connection failed during startup, but server will continue:', error.message);
     }
 
     try {
       this.server.listen(config.server.port, config.server.host, () => {
-        console.log(`\n ${config.app.name} started successfully!`);
-        console.log(` Server running on http://${config.server.host}:${config.server.port}`);
-        console.log(` Open your browser and navigate to the URL above`);
-        console.log(` Environment: ${config.server.environment}`);
-        console.log(` Database: ${config.database.database} on ${config.database.host}:${config.database.port}`);
-        console.log(`\nReady to accept terminal commands via web interface!\n`);
+        console.log(`\n🎯 ${config.app.name} started successfully!`);
+        console.log(`🌐 Server running on http://${config.server.host}:${config.server.port}`);
+        console.log(`📂 Open your browser and navigate to the URL above`);
+        console.log(`🔧 Environment: ${config.server.environment}`);
+        console.log(`💾 Database: ${config.database.database} on ${config.database.host}:${config.database.port}`);
+        
+        if (process.env.MEMORY_SAFE_MODE === 'true') {
+          console.log(`🛡️  Memory-safe mode: Large operations limited for deployment safety`);
+        }
+        
+        console.log(`\n✨ Ready to accept terminal commands via web interface!\n`);
       });
 
     } catch (error) {
-      console.error('Failed to start server:', error);
+      console.error('❌ Failed to start server:', error);
       process.exit(1);
     }
   }

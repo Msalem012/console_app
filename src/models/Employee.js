@@ -108,6 +108,10 @@ class Employee {
       throw new Error('Employees array is required and must not be empty');
     }
 
+    // Memory safety: limit batch size in production
+    const maxBatchSize = process.env.NODE_ENV === 'production' ? 500 : 1000;
+    batchSize = Math.min(batchSize, maxBatchSize);
+
     const pool = DatabaseConnection.getPool();
     if (!pool) {
       throw new Error('Database connection not available');

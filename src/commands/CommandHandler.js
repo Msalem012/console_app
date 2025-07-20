@@ -1,6 +1,7 @@
 const Employee = require('../models/Employee');
 const DatabaseConnection = require('../database/connection');
 const DataGenerator = require('../utils/DataGenerator');
+const MemoryMonitor = require('../utils/MemoryMonitor');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -330,36 +331,75 @@ class CommandHandler {
       timestamp: new Date().toISOString()
     });
 
+    // Check for memory-safe mode
+    const isMemorySafeMode = process.env.NODE_ENV === 'production' || process.env.MEMORY_SAFE_MODE === 'true';
+    const baseCount = isMemorySafeMode ? 10000 : 1000000;
+    const specialCount = isMemorySafeMode ? 100 : 100;
+
     output({
       type: 'info',
-      message: 'Generating 1,000,000 random employees + 100 males with "F" surnames...\n',
+      message: `Generating ${baseCount.toLocaleString()} random employees + ${specialCount} males with "F" surnames...\n`,
       timestamp: new Date().toISOString()
     });
 
-    try {
-      global.progressCallback = (progressData) => {
-        output({
-          type: 'progress',
-          message: `Progress: ${progressData.percentage}% (${progressData.current}/${progressData.total})\n`,
-          timestamp: new Date().toISOString()
-        });
-      };
-
-      const employees = DataGenerator.generateEmployees(1000000, 100);
-      
+    if (isMemorySafeMode) {
       output({
-        type: 'info',
-        message: `Generated ${employees.length} employee objects. Starting batch insert...\n`,
+        type: 'warning',
+        message: 'Memory-safe mode: Using reduced dataset for deployment environment\n',
         timestamp: new Date().toISOString()
       });
+    }
 
-      const result = await Employee.batchInsert(employees, 1000);
+    try {
+      // Start memory monitoring
+      MemoryMonitor.logMemoryUsage('Before Bulk Generation');
+      
+      let totalInserted = 0;
+      let totalSkipped = 0;
+      let batchCount = 0;
+      const startTime = performance.now();
 
-      global.progressCallback = null;
+      // Use streaming generator for memory efficiency
+      for await (const { batch, progress } of DataGenerator.generateEmployeesStream(baseCount, specialCount, 1000)) {
+        // Insert current batch with memory monitoring
+        const batchResult = await MemoryMonitor.monitorOperation(
+          `Batch ${batchCount + 1} Insert`,
+          () => Employee.batchInsert(batch, batch.length)
+        );
+        
+        totalInserted += batchResult.insertedCount;
+        totalSkipped += batchResult.skippedCount;
+        batchCount++;
+
+        // Show progress with memory info
+        const memoryCheck = MemoryMonitor.checkMemoryLimit(isMemorySafeMode ? 256 : 512);
+        output({
+          type: 'progress',
+          message: `Progress: ${progress.percentage}% (${progress.generated.toLocaleString()}/${progress.total.toLocaleString()}) - Batch ${batchCount} [Mem: ${memoryCheck.current.toFixed(1)}MB]\n`,
+          timestamp: new Date().toISOString()
+        });
+
+        // Memory safety: Force GC and add delay if memory is high
+        if (batchCount % 10 === 0) {
+          if (memoryCheck.exceeded || memoryCheck.current > 200) {
+            MemoryMonitor.forceGarbageCollection();
+            await new Promise(resolve => setTimeout(resolve, 50)); // Longer delay
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 10)); // Normal delay
+          }
+        }
+      }
+
+      const endTime = performance.now();
+      const totalExecutionTime = `${(endTime - startTime).toFixed(2)}ms`;
+
+      // Final memory check
+      MemoryMonitor.logMemoryUsage('After Bulk Generation');
+      const finalMemoryCheck = MemoryMonitor.checkMemoryLimit();
 
       output({
         type: 'success',
-        message: '\ Bulk data generation completed!\n',
+        message: '\n✅ Bulk data generation completed!\n',
         timestamp: new Date().toISOString()
       });
 
@@ -370,38 +410,47 @@ class CommandHandler {
       });
       output({
         type: 'data',
-        message: `  Total employees generated: ${result.totalEmployees}\n`,
+        message: `  Total employees processed: ${(baseCount + specialCount).toLocaleString()}\n`,
         timestamp: new Date().toISOString()
       });
       output({
         type: 'data',
-        message: `  Successfully inserted: ${result.insertedCount}\n`,
+        message: `  Successfully inserted: ${totalInserted.toLocaleString()}\n`,
         timestamp: new Date().toISOString()
       });
       output({
         type: 'data',
-        message: `  Skipped (duplicates): ${result.skippedCount}\n`,
+        message: `  Skipped (duplicates): ${totalSkipped.toLocaleString()}\n`,
         timestamp: new Date().toISOString()
       });
       output({
         type: 'data',
-        message: `  Total execution time: ${result.totalExecutionTime}\n`,
+        message: `  Total execution time: ${totalExecutionTime}\n`,
         timestamp: new Date().toISOString()
       });
       output({
         type: 'data',
-        message: `  Number of batches: ${result.batches.length}\n`,
+        message: `  Number of batches: ${batchCount}\n`,
+        timestamp: new Date().toISOString()
+      });
+      output({
+        type: 'data',
+        message: `  Memory usage: Streaming (memory-efficient)\n`,
+        timestamp: new Date().toISOString()
+      });
+      output({
+        type: 'data',
+        message: `  Final memory: ${finalMemoryCheck.current.toFixed(1)}MB / ${finalMemoryCheck.limit}MB\n`,
         timestamp: new Date().toISOString()
       });
 
       output({
         type: 'success',
-        message: '\n Mode 4 completed successfully!\n\n',
+        message: '\n🚀 Mode 4 completed successfully!\n\n',
         timestamp: new Date().toISOString()
       });
 
     } catch (error) {
-      global.progressCallback = null;
       throw new Error(`Failed to generate bulk data: ${error.message}`);
     }
   }

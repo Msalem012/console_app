@@ -96,12 +96,20 @@ database: {
 ```
 
 ### 4. Start the Application
-```bash
-# Development mode with auto-restart
-npm run dev
 
-# Production mode
+**Development Mode:**
+```bash
+npm run dev
+```
+
+**Production Mode (Memory-Safe):**
+```bash
 npm start
+```
+
+**Deployment Mode (Maximum Memory Safety):**
+```bash
+npm run deploy
 ```
 
 ### 5. Access the Web Terminal
@@ -109,6 +117,66 @@ Open your browser and navigate to:
 ```
 http://localhost:3000
 ```
+
+## 🚀 **Deployment Guide**
+
+### Memory Safety for Production
+
+This application is designed to handle large datasets (1M+ records), but deployment environments often have memory limitations. We've implemented several safety measures:
+
+#### Environment Variables
+Set these environment variables for safe deployment:
+
+```bash
+NODE_ENV=production
+MEMORY_SAFE_MODE=true
+DEPLOYMENT_MODE=true
+```
+
+#### Memory-Safe Features
+- **Streaming Generation**: Large datasets are generated in memory-efficient batches
+- **Reduced Batch Sizes**: Production uses smaller batch sizes (500 vs 1000)
+- **Limited Dataset Size**: In deployment mode, bulk operations use 10,000 records instead of 1M
+- **Progressive Processing**: Memory is released between batches
+
+#### Deployment Scripts
+```bash
+# Safe deployment start (recommended for production)
+npm run deploy
+
+# Standard production start
+npm start
+
+# Development with full features
+npm run dev
+```
+
+### Cloud Platform Deployment
+
+**Render/Heroku/Railway:**
+```bash
+# Build command (safe, no heavy operations)
+npm run build
+
+# Start command (memory-safe)
+npm run deploy
+```
+
+**Docker:**
+```dockerfile
+# Set memory-safe environment variables
+ENV NODE_ENV=production
+ENV MEMORY_SAFE_MODE=true
+ENV DEPLOYMENT_MODE=true
+
+# Use the deployment script
+CMD ["npm", "run", "deploy"]
+```
+
+### Memory Requirements
+- **Development**: 2-4 GB RAM (full 1M dataset)
+- **Production**: 512 MB - 1 GB RAM (memory-safe mode)
+- **Deployment**: 256-512 MB RAM (minimal mode)
 
 ## 💻 **Usage**
 

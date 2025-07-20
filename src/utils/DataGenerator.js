@@ -31,7 +31,70 @@ class DataGenerator {
     return new Employee(fullName, birthDate, gender);
   }
 
+  // Memory-efficient streaming generator
+  static async *generateEmployeesStream(baseCount = 1000000, specialCount = 100, batchSize = 1000) {
+    console.log(`Starting memory-efficient generation of ${baseCount + specialCount} employees...`);
+    
+    const totalCount = baseCount + specialCount;
+    let generated = 0;
+    
+    // Generate in batches to avoid memory issues
+    while (generated < totalCount) {
+      const currentBatchSize = Math.min(batchSize, totalCount - generated);
+      const batch = [];
+      
+      for (let i = 0; i < currentBatchSize; i++) {
+        if (generated + i < baseCount) {
+          // Regular employees
+          const gender = Math.random() < 0.5 ? 'Male' : 'Female';
+          batch.push(this.generateRandomEmployee(gender));
+        } else {
+          // Special male employees with "F" surnames
+          batch.push(this.generateRandomEmployee('Male', 'F'));
+        }
+      }
+      
+      generated += currentBatchSize;
+      
+      // Yield batch with progress info
+      yield {
+        batch,
+        progress: {
+          generated,
+          total: totalCount,
+          percentage: Math.round((generated / totalCount) * 100),
+          isComplete: generated >= totalCount
+        }
+      };
+    }
+    
+    console.log(`Completed memory-efficient generation of ${totalCount} employees.`);
+  }
+
+  // Legacy method - kept for backwards compatibility but now uses streaming
   static generateEmployees(baseCount = 1000000, specialCount = 100) {
+    // Check if we're in a deployment environment and reduce the count
+    if (process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_MODE === 'true') {
+      console.log('Deployment mode detected - using reduced dataset for memory safety');
+      baseCount = Math.min(baseCount, 1000); // Limit to 1000 in deployment
+      specialCount = Math.min(specialCount, 10);
+    }
+    
+    // For small datasets, use the original method
+    if (baseCount + specialCount <= 10000) {
+      return this.generateEmployeesOriginal(baseCount, specialCount);
+    }
+    
+    // For large datasets, throw an error to prevent memory issues
+    throw new Error(
+      `Memory-safe mode: Cannot generate ${baseCount + specialCount} employees at once. ` +
+      `Use DataGenerator.generateEmployeesStream() for large datasets or ` +
+      `CommandHandler.mode4_generateBulkData() which handles memory efficiently.`
+    );
+  }
+
+  // Original method for small datasets
+  static generateEmployeesOriginal(baseCount = 1000, specialCount = 100) {
     console.log(`Generating ${baseCount} random employees...`);
     const employees = [];
 
@@ -41,16 +104,16 @@ class DataGenerator {
     for (let i = 0; i < maleCount; i++) {
       employees.push(this.generateRandomEmployee('Male'));
       
-      if (i % 50000 === 0) {
-        console.log(`Generated ${i + employees.length - i} random employees...`);
+      if (i % 50000 === 0 && i > 0) {
+        console.log(`Generated ${i} male employees...`);
       }
     }
 
     for (let i = 0; i < femaleCount; i++) {
       employees.push(this.generateRandomEmployee('Female'));
       
-      if (i % 50000 === 0) {
-        console.log(`Generated ${maleCount + i + 1} random employees...`);
+      if (i % 50000 === 0 && i > 0) {
+        console.log(`Generated ${maleCount + i} total employees...`);
       }
     }
 
