@@ -227,3 +227,4 @@ class DatabaseConnection {
   }
 }
 module.exports = new DatabaseConnection();
+
