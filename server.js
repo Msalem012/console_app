@@ -187,7 +187,7 @@ class TerminalServer {
     try {
       this.server.listen(config.server.port, config.server.host, () => {
         console.log(`\n ${config.app.name} started successfully!`);
-        console.log(` Server running on http:
+        console.log(` Server running on http://${config.server.host}:${config.server.port}`);
         console.log(` Open your browser and navigate to the URL above`);
         console.log(` Environment: ${config.server.environment}`);
         console.log(` Database: ${config.database.database} on ${config.database.host}:${config.database.port}`);
