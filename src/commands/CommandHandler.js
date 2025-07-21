@@ -228,7 +228,7 @@ class CommandHandler {
       
       output({
         type: 'info',
-        message: '🚀 Generating employee list file with high-performance streaming...\n',
+        message: ' Generating employee list file with high-performance streaming...\n',
         timestamp: new Date().toISOString()
       });
 
@@ -254,7 +254,7 @@ class CommandHandler {
 
       output({
         type: 'success',
-        message: `✅ Employee list file generated successfully!\n`,
+        message: ` Employee list file generated successfully!\n`,
         timestamp: new Date().toISOString()
       });
 
@@ -300,7 +300,7 @@ class CommandHandler {
 
       output({
         type: 'success',
-        message: '\n🚀 Mode 3 completed successfully!\n\n',
+        message: '\n Mode 3 completed successfully!\n\n',
         timestamp: new Date().toISOString()
       });
 
@@ -361,7 +361,7 @@ class CommandHandler {
       if (!indexExists) {
         output({
           type: 'info',
-          message: '⚡ Creating high-performance index for fast file generation...\n',
+          message: 'Creating high-performance index for fast file generation...\n',
           timestamp: new Date().toISOString()
         });
         
@@ -374,13 +374,13 @@ class CommandHandler {
         
         output({
           type: 'success',
-          message: `✅ High-performance index created in ${(endTime - startTime).toFixed(2)}ms\n`,
+          message: ` High-performance index created in ${(endTime - startTime).toFixed(2)}ms\n`,
           timestamp: new Date().toISOString()
         });
       } else {
         output({
           type: 'info',
-          message: '✅ High-performance index already exists\n',
+          message: ' High-performance index already exists\n',
           timestamp: new Date().toISOString()
         });
       }
@@ -388,7 +388,7 @@ class CommandHandler {
       // If index creation fails, continue anyway (will be slower but still work)
       output({
         type: 'warning',
-        message: `⚠️  Could not create high-performance index: ${error.message}\n`,
+        message: `  Could not create high-performance index: ${error.message}\n`,
         timestamp: new Date().toISOString()
       });
     }
@@ -569,9 +569,7 @@ class CommandHandler {
       let batchCount = 0;
       const startTime = performance.now();
 
-      // Use streaming generator for memory efficiency
       for await (const { batch, progress } of DataGenerator.generateEmployeesStream(baseCount, specialCount, 1000)) {
-        // Insert current batch with memory monitoring
         const batchResult = await MemoryMonitor.monitorOperation(
           `Batch ${batchCount + 1} Insert`,
           () => Employee.batchInsert(batch, batch.length)
@@ -609,7 +607,7 @@ class CommandHandler {
 
       output({
         type: 'success',
-        message: '\n✅ Bulk data generation completed!\n',
+        message: '\n Bulk data generation completed!\n',
         timestamp: new Date().toISOString()
       });
 
@@ -656,7 +654,7 @@ class CommandHandler {
 
       output({
         type: 'success',
-        message: '\n🚀 Mode 4 completed successfully!\n\n',
+        message: '\n Mode 4 completed successfully!\n\n',
         timestamp: new Date().toISOString()
       });
 
@@ -929,7 +927,7 @@ class CommandHandler {
 
       output({
         type: 'success',
-        message: `\n🚀 Performance improvement: ${improvement}% faster\n`,
+        message: `\n Performance improvement: ${improvement}% faster\n`,
         timestamp: new Date().toISOString()
       });
 
@@ -1089,13 +1087,13 @@ class CommandHandler {
       if (!hasConfirmFlag) {
         output({
           type: 'warning',
-          message: `⚠️  DANGER: This will permanently DROP the entire "employees" table!\n`,
+          message: `  DANGER: This will permanently DROP the entire "employees" table!\n`,
           timestamp: new Date().toISOString()
         });
         
         output({
           type: 'warning',
-          message: `⚠️  ALL ${currentCount} records AND the table structure will be deleted!\n`,
+          message: `  ALL ${currentCount} records AND the table structure will be deleted!\n`,
           timestamp: new Date().toISOString()
         });
         
@@ -1285,3 +1283,5 @@ class CommandHandler {
 }
 
 module.exports = CommandHandler; 
+
+

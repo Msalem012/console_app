@@ -9,7 +9,6 @@
 </head>
 <body>
     <div class="terminal-container">
-        
         <div class="terminal-header">
             <div class="terminal-controls">
                 <div class="control-button close"></div>
@@ -22,13 +21,8 @@
                 <span id="statusText">Connecting...</span>
             </div>
         </div>
-
-        
         <div class="terminal-content" id="terminalContent">
-            
         </div>
-
-        
         <div class="terminal-input-container">
             <span class="terminal-prompt">user@employee-terminal:~$ </span>
             <input type="text" 
@@ -38,8 +32,6 @@
                    autocomplete="off"
                    spellcheck="false">
         </div>
-
-        
         <div class="progress-container" id="progressContainer" style="display: none;">
             <div class="progress-label" id="progressLabel">Processing...</div>
             <div class="progress-bar">
@@ -48,8 +40,6 @@
             <div class="progress-text" id="progressText">0%</div>
         </div>
     </div>
-
-    
     <div class="modal" id="configModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -79,13 +69,12 @@
             </div>
         </div>
     </div>
-
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">Initializing Terminal...</div>
     </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="terminal.js"></script>
 </body>
 </html> 
+

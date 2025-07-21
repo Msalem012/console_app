@@ -1,11 +1,9 @@
 const { Pool } = require('pg');
 const config = require('../../config');
-
 class DatabaseConnection {
   constructor() {
     this.pool = null;
   }
-
   async initialize() {
     try {
       this.pool = new Pool({
@@ -16,16 +14,13 @@ class DatabaseConnection {
         password: config.database.password,
         ssl: config.database.ssl,
         ...config.database.pool
-      });  
-
+      });
       await this.checkConnection();
       console.log(' PostgreSQL connection pool initialized successfully');
-      
       return this.pool;
     } catch (error) {
       console.warn(' Warning: Database connection failed during startup:', error.message);
       console.warn(' App will continue running. Database features will be unavailable until connection is restored.');
-      
       this.pool = new Pool({
         host: config.database.host,
         port: config.database.port,
@@ -35,21 +30,17 @@ class DatabaseConnection {
         ssl: config.database.ssl,
         ...config.database.pool
       });
-      
       return this.pool;
     }
   }
-
   async checkConnection() {
     if (!this.pool) {
       throw new Error('Database connection not initialized');
     }
-
     try {
       const client = await this.pool.connect();
       const result = await client.query('SELECT NOW() as current_time, version() as pg_version');
       client.release();
-      
       return {
         connected: true,
         timestamp: result.rows[0].current_time,
@@ -61,38 +52,32 @@ class DatabaseConnection {
       throw new Error(`Database connection failed: ${error.message}`);
     }
   }
-
   async createEmployeesTable() {
     if (!this.pool) {
       throw new Error('Database connection not initialized');
     }
-
     try {
       const checkTableQuery = `
         SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
+          SELECT FROM information_schema.tables
+          WHERE table_schema = 'public'
           AND table_name = 'employees'
         );
       `;
-      
       const existsResult = await this.pool.query(checkTableQuery);
       const tableExists = existsResult.rows[0].exists;
-
       const tableInfoQuery = `
-        SELECT 
-          column_name, 
-          data_type, 
-          is_nullable, 
+        SELECT
+          column_name,
+          data_type,
+          is_nullable,
           column_default
-        FROM information_schema.columns 
-        WHERE table_name = 'employees' 
+        FROM information_schema.columns
+        WHERE table_name = 'employees'
         ORDER BY ordinal_position;
       `;
-
       if (tableExists) {
         const result = await this.pool.query(tableInfoQuery);
-        
         return {
           created: false,
           alreadyExists: true,
@@ -111,11 +96,8 @@ class DatabaseConnection {
             CONSTRAINT unique_employee UNIQUE (full_name, birth_date)
           );
         `;
-
         await this.pool.query(createTableQuery);
-        
         const result = await this.pool.query(tableInfoQuery);
-        
         return {
           created: true,
           alreadyExists: false,
@@ -128,12 +110,10 @@ class DatabaseConnection {
       throw new Error(`Failed to create employees table: ${error.message}`);
     }
   }
-
   async dropEmployeesTable() {
     if (!this.pool) {
       throw new Error('Database connection not initialized');
     }
-
     try {
       await this.pool.query('DROP TABLE IF EXISTS employees CASCADE;');
       return {
@@ -144,15 +124,13 @@ class DatabaseConnection {
       throw new Error(`Failed to drop employees table: ${error.message}`);
     }
   }
-
   async getTableStats() {
     if (!this.pool) {
       throw new Error('Database connection not initialized');
     }
-
     try {
       const statsQuery = `
-        SELECT 
+        SELECT
           COUNT(*) as total_records,
           COUNT(DISTINCT full_name) as unique_names,
           COUNT(CASE WHEN gender = 'Male' THEN 1 END) as male_count,
@@ -162,7 +140,6 @@ class DatabaseConnection {
           pg_size_pretty(pg_total_relation_size('employees')) as table_size
         FROM employees;
       `;
-
       const result = await this.pool.query(statsQuery);
       return result.rows[0];
     } catch (error) {
@@ -180,54 +157,49 @@ class DatabaseConnection {
       throw new Error(`Failed to get table statistics: ${error.message}`);
     }
   }
-
   async createOptimizationIndexes() {
     if (!this.pool) {
       throw new Error('Database connection not initialized');
     }
-
     const indexes = [
       {
         name: 'idx_employees_high_performance_pagination',
-        query: `CREATE INDEX IF NOT EXISTS idx_employees_high_performance_pagination 
+        query: `CREATE INDEX IF NOT EXISTS idx_employees_high_performance_pagination
                 ON employees(full_name, id);`,
         description: 'High-performance index for fast file generation with cursor pagination'
       },
       {
         name: 'idx_employees_gender_name',
-        query: `CREATE INDEX IF NOT EXISTS idx_employees_gender_name 
-                ON employees(gender, full_name) 
+        query: `CREATE INDEX IF NOT EXISTS idx_employees_gender_name
+                ON employees(gender, full_name)
                 WHERE gender = 'Male' AND full_name LIKE 'F%';`,
         description: 'Optimized index for Mode 5 queries'
       },
       {
         name: 'idx_employees_full_name',
-        query: `CREATE INDEX IF NOT EXISTS idx_employees_full_name 
+        query: `CREATE INDEX IF NOT EXISTS idx_employees_full_name
                 ON employees(full_name);`,
         description: 'General full name index'
       },
       {
         name: 'idx_employees_gender',
-        query: `CREATE INDEX IF NOT EXISTS idx_employees_gender 
+        query: `CREATE INDEX IF NOT EXISTS idx_employees_gender
                 ON employees(gender);`,
         description: 'Gender filtering index'
       },
       {
         name: 'idx_employees_birth_date',
-        query: `CREATE INDEX IF NOT EXISTS idx_employees_birth_date 
+        query: `CREATE INDEX IF NOT EXISTS idx_employees_birth_date
                 ON employees(birth_date);`,
         description: 'Birth date index for age calculations'
       }
     ];
-
     const results = [];
-    
     try {
       for (const index of indexes) {
         const startTime = performance.now();
         await this.pool.query(index.query);
         const endTime = performance.now();
-        
         results.push({
           name: index.name,
           description: index.description || '',
@@ -235,7 +207,6 @@ class DatabaseConnection {
           executionTime: `${(endTime - startTime).toFixed(2)}ms`
         });
       }
-
       return {
         success: true,
         message: 'Database optimization indexes created successfully',
@@ -245,11 +216,9 @@ class DatabaseConnection {
       throw new Error(`Failed to create optimization indexes: ${error.message}`);
     }
   }
-
   getPool() {
     return this.pool;
   }
-
   async close() {
     if (this.pool) {
       await this.pool.end();
@@ -257,5 +226,4 @@ class DatabaseConnection {
     }
   }
 }
-
-module.exports = new DatabaseConnection(); 
+module.exports = new DatabaseConnection();
